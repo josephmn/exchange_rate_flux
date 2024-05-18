@@ -5,6 +5,7 @@ import com.exchangerate.application.dto.ExchangeSaveResponse;
 import com.exchangerate.application.dto.Request;
 import com.exchangerate.application.service.ExchangeService;
 import com.exchangerate.domain.model.ExchangeEntity;
+import com.exchangerate.util.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,26 +19,35 @@ import java.util.List;
 public class ExchangeController {
 
     private final ExchangeService exchangeService;
+    private final JwtUtils jwtUtils;
 
     @Autowired
-    public ExchangeController(ExchangeService exchangeService) {
+    public ExchangeController(ExchangeService exchangeService, JwtUtils jwtUtils) {
         this.exchangeService = exchangeService;
+        this.jwtUtils = jwtUtils;
     }
 
-//    @GetMapping("/listexchangesave")
-//    public Mono<ResponseEntity<Flux<ExchangeEntity>>> getExchangeSave() {
-//        Flux<ExchangeEntity> exchangeEntities = this.exchangeService.getExchangeSave();
-//        return Mono.just(ResponseEntity.ok(exchangeEntities))
-//                .defaultIfEmpty(ResponseEntity.noContent().build());
-//    }
-
     @GetMapping("/listexchangesave")
-    public Flux<ExchangeEntity> getExchangeSave() {
-        return this.exchangeService.getExchangeSave();
+    public Flux<ExchangeEntity> getExchangeSave(@RequestHeader("Authorization") String token) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        if (jwtUtils.validateJwtToken(token)) {
+            return this.exchangeService.getExchangeSave();
+        } else {
+            return Flux.empty();
+        }
     }
 
     @GetMapping("/exchange")
-    public Mono<ExchangeEntity> exchange(@RequestBody Request request) {
-        return this.exchangeService.exchange(request);
+    public Mono<ExchangeEntity> exchange(@RequestHeader("Authorization") String token, @RequestBody Request request) {
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        if (jwtUtils.validateJwtToken(token)) {
+            return this.exchangeService.exchange(request);
+        } else {
+            return Mono.empty();
+        }
     }
 }
